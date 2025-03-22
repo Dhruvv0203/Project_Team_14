@@ -45,7 +45,7 @@ A Flutter-based Android application that helps users manage their personal finan
 
 ### Steps to Run:
 
-1. **Clone the repository:**
+1. **Clone the repository**
 2. 
 ```bash
 
