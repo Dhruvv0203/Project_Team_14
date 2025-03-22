@@ -51,6 +51,6 @@ A Flutter-based Android application that helps users manage their personal finan
 git clone <your-repo-link>
 cd <your-project-folder>
 
-2. **flutter pub get**
-3. **flutter run**
+ **flutter pub get**
+ **flutter run**
 
