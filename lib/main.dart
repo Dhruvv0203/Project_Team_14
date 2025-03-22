@@ -45,19 +45,6 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  late List<Widget> _screens;
-
-  @override
-  void initState() {
-    super.initState();
-    _screens = [
-      HomeScreen(),
-      AddTransactionScreen(),
-      ReportsScreen(),
-      SettingsScreen(toggleTheme: widget.toggleTheme, isDarkMode: widget.isDarkMode),
-    ];
-  }
-
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
   }
@@ -65,7 +52,16 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _screens[_selectedIndex],
+      body: IndexedStack( // <-- CHANGE HERE
+        index: _selectedIndex,
+        children: [
+          HomeScreen(),
+          AddTransactionScreen(),
+          ReportsScreen(),
+          // Pass updated value every time
+          SettingsScreen(toggleTheme: widget.toggleTheme, isDarkMode: widget.isDarkMode),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.blueAccent,
@@ -476,6 +472,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _targetAmountController = TextEditingController();
   final _categoryNameController = TextEditingController();
 
+  late bool _localDarkMode; // <-- NEW LOCAL VARIABLE
+
+  @override
+  void initState() {
+    super.initState();
+    _localDarkMode = widget.isDarkMode; // Initialize from parent
+  }
+
   void _addGoal() async {
     await DBHelper().insertGoal({
       'goal_name': _goalNameController.text,
@@ -500,8 +504,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             SwitchListTile(
               title: Text('Dark Mode'),
-              value: widget.isDarkMode,
-              onChanged: (val) => widget.toggleTheme(val),
+              value: _localDarkMode, // <-- USE LOCAL VARIABLE
+              onChanged: (val) {
+                setState(() {
+                  _localDarkMode = val;
+                });
+                widget.toggleTheme(val);
+              },
             ),
             Divider(),
             Text('Add Savings Goal', style: TextStyle(fontWeight: FontWeight.bold)),
