@@ -1,125 +1,369 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'DBHelper.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(FinanceManagerApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
+class FinanceManagerApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      title: 'Personal Finance Manager',
+      theme: ThemeData(primarySwatch: Colors.blue),
+      home: MainScreen(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
-
+class MainScreen extends StatefulWidget {
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _MainScreenState createState() => _MainScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _MainScreenState extends State<MainScreen> {
+  int _selectedIndex = 0;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  final List<Widget> _screens = [
+    HomeScreen(),
+    AddTransactionScreen(),
+    ReportsScreen(),
+    SettingsScreen(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() => _selectedIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+      body: _screens[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.blueAccent,
+        backgroundColor: Colors.white,
+        unselectedItemColor: Colors.grey,
+        onTap: _onItemTapped,
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Add'),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Reports'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
+        ],
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
+    );
+  }
+}
+
+// -------------------- HOME SCREEN --------------------
+class HomeScreen extends StatefulWidget {
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  List<Map<String, dynamic>> _transactions = [];
+  List<Map<String, dynamic>> _goals = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  void _loadData() async {
+    final tx = await DBHelper().getAllTransactions();
+    final goals = await DBHelper().getAllGoals();
+    setState(() {
+      _transactions = tx;
+      _goals = goals;
+    });
+  }
+
+  void _showGoalOptions(Map<String, dynamic> goal) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(goal['goal_name']),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ElevatedButton(
+              child: Text('Add Saved Amount'),
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                _showAddAmountDialog(goal);
+              },
             ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: Text('Delete Goal'),
+              onPressed: () async {
+                await DBHelper().deleteGoal(goal['id']);
+                Navigator.of(ctx).pop();
+                _loadData();
+              },
             ),
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+
+  void _showAddAmountDialog(Map<String, dynamic> goal) {
+    final _amountController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Add Saved Amount'),
+        content: TextField(
+          controller: _amountController,
+          decoration: InputDecoration(labelText: 'Amount'),
+          keyboardType: TextInputType.number,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              double addAmount = double.parse(_amountController.text);
+              double newAmount = goal['current_amount'] + addAmount;
+              await DBHelper().updateGoal(goal['id'], {
+                'goal_name': goal['goal_name'],
+                'target_amount': goal['target_amount'],
+                'current_amount': newAmount,
+              });
+              Navigator.of(ctx).pop();
+              _loadData();
+            },
+            child: Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    double income = 0, expenses = 0;
+    for (var t in _transactions) {
+      double amt = t['amount'];
+      if (t['type'] == 'Income') income += amt;
+      else expenses += amt;
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: Text('Dashboard')),
+      body: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Text('Income: \$${income.toStringAsFixed(2)}'),
+            Text('Expenses: \$${expenses.abs().toStringAsFixed(2)}'),
+            Divider(),
+            Text('Savings Goals:', style: TextStyle(fontWeight: FontWeight.bold)),
+            ..._goals.map((g) => ListTile(
+              title: Text(g['goal_name']),
+              subtitle: Text('Progress: \$${g['current_amount']} / \$${g['target_amount']}'),
+              onTap: () => _showGoalOptions(g),
+            )),
+            Divider(),
+            Text('Recent Transactions:', style: TextStyle(fontWeight: FontWeight.bold)),
+            Expanded(
+              child: ListView.builder(
+                itemCount: _transactions.length,
+                itemBuilder: (ctx, idx) {
+                  final t = _transactions[idx];
+                  return ListTile(
+                    title: Text('${t['category']} (${t['type']})'),
+                    subtitle: Text(DateFormat.yMMMd().format(DateTime.parse(t['date']))),
+                    trailing: Text('\$${t['amount']}'),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// -------------------- ADD TRANSACTION SCREEN --------------------
+class AddTransactionScreen extends StatefulWidget {
+  @override
+  _AddTransactionScreenState createState() => _AddTransactionScreenState();
+}
+
+class _AddTransactionScreenState extends State<AddTransactionScreen> {
+  final _amountController = TextEditingController();
+  final _descController = TextEditingController();
+  String? _selectedCategory;
+  String _selectedType = 'Expense';
+  DateTime _selectedDate = DateTime.now();
+  List<Map<String, dynamic>> _categories = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  void _loadCategories() async {
+    final cat = await DBHelper().getAllCategories();
+    setState(() {
+      _categories = cat;
+      if (cat.isNotEmpty) _selectedCategory = cat.first['name'];
+    });
+  }
+
+  void _saveTransaction() async {
+    double amount = double.parse(_amountController.text);
+    if (_selectedType == 'Expense') amount = -amount;
+
+    await DBHelper().insertTransaction({
+      'amount': amount,
+      'date': _selectedDate.toIso8601String(),
+      'type': _selectedType,
+      'category': _selectedCategory,
+      'description': _descController.text,
+    });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Saved')));
+    _amountController.clear();
+    _descController.clear();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Add Transaction')),
+      body: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          children: [
+            DropdownButtonFormField(
+              value: _selectedType,
+              items: ['Income', 'Expense'].map((t) {
+                return DropdownMenuItem(value: t, child: Text(t));
+              }).toList(),
+              onChanged: (val) => setState(() => _selectedType = val as String),
+            ),
+            TextField(
+              controller: _amountController,
+              decoration: InputDecoration(labelText: 'Amount'),
+              keyboardType: TextInputType.number,
+            ),
+            DropdownButtonFormField(
+              value: _selectedCategory,
+              items: _categories.map((c) {
+                return DropdownMenuItem(value: c['name'], child: Text(c['name']));
+              }).toList(),
+              onChanged: (val) => setState(() => _selectedCategory = val as String),
+            ),
+            TextField(
+              controller: _descController,
+              decoration: InputDecoration(labelText: 'Description'),
+            ),
+            ElevatedButton(onPressed: _saveTransaction, child: Text('Save')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// -------------------- REPORTS SCREEN --------------------
+class ReportsScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: DBHelper().getAllTransactions(),
+      builder: (ctx, snapshot) {
+        if (!snapshot.hasData) return Center(child: CircularProgressIndicator());
+        final transactions = snapshot.data!;
+        Map<String, double> categoryTotals = {};
+        for (var t in transactions) {
+          categoryTotals[t['category']] = (categoryTotals[t['category']] ?? 0) + t['amount'].abs();
+        }
+
+        return Scaffold(
+          appBar: AppBar(title: Text('Reports')),
+          body: Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Text('Category Breakdown', style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(
+                  height: 200,
+                  child: PieChart(
+                    PieChartData(
+                      sections: categoryTotals.entries.map((entry) {
+                        return PieChartSectionData(
+                          title: entry.key,
+                          value: entry.value,
+                          radius: 50,
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// -------------------- SETTINGS SCREEN --------------------
+class SettingsScreen extends StatefulWidget {
+  @override
+  _SettingsScreenState createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final _goalNameController = TextEditingController();
+  final _targetAmountController = TextEditingController();
+  final _categoryNameController = TextEditingController();
+
+  void _addGoal() async {
+    await DBHelper().insertGoal({
+      'goal_name': _goalNameController.text,
+      'target_amount': double.parse(_targetAmountController.text),
+      'current_amount': 0.0,
+    });
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Goal Added')));
+  }
+
+  void _addCategory() async {
+    await DBHelper().addCategory(_categoryNameController.text);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Category Added')));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Settings')),
+      body: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Text('Add Savings Goal', style: TextStyle(fontWeight: FontWeight.bold)),
+            TextField(controller: _goalNameController, decoration: InputDecoration(labelText: 'Goal Name')),
+            TextField(controller: _targetAmountController, decoration: InputDecoration(labelText: 'Target Amount')),
+            ElevatedButton(onPressed: _addGoal, child: Text('Add Goal')),
+            Divider(),
+            Text('Add Category', style: TextStyle(fontWeight: FontWeight.bold)),
+            TextField(controller: _categoryNameController, decoration: InputDecoration(labelText: 'Category Name')),
+            ElevatedButton(onPressed: _addCategory, child: Text('Add Category')),
+          ],
+        ),
+      ),
     );
   }
 }
