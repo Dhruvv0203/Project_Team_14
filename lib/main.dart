@@ -56,7 +56,7 @@ class _MainScreenState extends State<MainScreen> {
         index: _selectedIndex,
         children: [
           HomeScreen(key: UniqueKey()), // <-- Forces HomeScreen to reload
-          AddTransactionScreen(),
+          AddTransactionScreen(key: UniqueKey()),
           ReportsScreen(),
           // Pass updated value every time
           SettingsScreen(toggleTheme: widget.toggleTheme, isDarkMode: widget.isDarkMode),
@@ -300,6 +300,8 @@ class _HomeScreenState extends State<HomeScreen> {
 //////////////////////////////////////////////////////////
 
 class AddTransactionScreen extends StatefulWidget {
+  const AddTransactionScreen({Key? key}) : super(key: key); // <-- Add key
+
   @override
   _AddTransactionScreenState createState() => _AddTransactionScreenState();
 }
@@ -316,6 +318,12 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   void initState() {
     super.initState();
     _loadCategories();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadCategories(); // <-- Reload categories every time
   }
 
   void _loadCategories() async {
@@ -384,6 +392,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
 //////////////////////////////////////////////////////////
 // -------------------- REPORTS SCREEN --------------------
 //////////////////////////////////////////////////////////
+
 
 class ReportsScreen extends StatelessWidget {
   final Map<String, Color> categoryColors = {
