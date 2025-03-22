@@ -36,7 +36,7 @@ class MainScreen extends StatefulWidget {
   final Function(bool) toggleTheme;
   final bool isDarkMode;
 
-  MainScreen({required this.toggleTheme, required this.isDarkMode});
+  const MainScreen({required this.toggleTheme, required this.isDarkMode, Key? key}) : super(key: key);
 
   @override
   _MainScreenState createState() => _MainScreenState();
@@ -55,7 +55,7 @@ class _MainScreenState extends State<MainScreen> {
       body: IndexedStack( // <-- CHANGE HERE
         index: _selectedIndex,
         children: [
-          HomeScreen(),
+          HomeScreen(key: UniqueKey()), // <-- Forces HomeScreen to reload
           AddTransactionScreen(),
           ReportsScreen(),
           // Pass updated value every time
@@ -84,6 +84,8 @@ class _MainScreenState extends State<MainScreen> {
 //////////////////////////////////////////////////////////
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({Key? key}) : super(key: key); // <-- Accepts key now
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -248,30 +250,43 @@ class _HomeScreenState extends State<HomeScreen> {
             Text('Recent Transactions:', style: TextStyle(fontWeight: FontWeight.bold)),
             Expanded(
               child: ListView.builder(
-                itemCount: _transactions.length,
-                itemBuilder: (ctx, idx) {
-                  final t = _transactions[idx];
-                  return ListTile(
-                    title: Text('${t['category']} (${t['type']})'),
-                    subtitle: Text(
-                      '${DateFormat.yMMMd().format(DateTime.parse(t['date']))}\n${t['description']}',
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.edit),
-                          onPressed: () => _editTransaction(t),
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.delete),
-                          onPressed: () => _deleteTransaction(t['id']),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+  itemCount: _transactions.length,
+  itemBuilder: (ctx, idx) {
+    final t = _transactions[idx];
+    return ListTile(
+      title: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(t['category']),
+          Text(
+            '\$${t['amount'].abs().toStringAsFixed(2)}',
+            style: TextStyle(
+              color: t['type'] == 'Income' ? Colors.green : Colors.red,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+      subtitle: Text(
+        '${DateFormat.yMMMd().format(DateTime.parse(t['date']))}\n${t['description']}',
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: Icon(Icons.edit),
+            onPressed: () => _editTransaction(t),
+          ),
+          IconButton(
+            icon: Icon(Icons.delete),
+            onPressed: () => _deleteTransaction(t['id']),
+          ),
+        ],
+      ),
+    );
+  },
+)
+,
             ),
           ],
         ),
@@ -279,6 +294,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
 //////////////////////////////////////////////////////////
 // -------------------- ADD TRANSACTION SCREEN --------------------
 //////////////////////////////////////////////////////////
@@ -402,8 +418,9 @@ class ReportsScreen extends StatelessWidget {
           body: Padding(
             padding: EdgeInsets.all(16),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Category Breakdown', style: TextStyle(fontWeight: FontWeight.bold)),
+                Text('Expense Category Breakdown', style: TextStyle(fontWeight: FontWeight.bold)),
                 SizedBox(
                   height: 200,
                   child: PieChart(
@@ -421,26 +438,70 @@ class ReportsScreen extends StatelessWidget {
                   ),
                 ),
                 Divider(),
+                SizedBox(height: 20), // Space before title
                 Text('Income vs Expenses', style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(height: 100), // Additional spacing
                 SizedBox(
-                  height: 200,
+                  height: 250,
                   child: BarChart(
                     BarChartData(
                       barGroups: [
-                        BarChartGroupData(x: 0, barRods: [
-                          BarChartRodData(toY: incomeTotal, width: 20, color: Colors.blue),
-                        ], showingTooltipIndicators: [0]),
-                        BarChartGroupData(x: 1, barRods: [
-                          BarChartRodData(toY: expenseTotal, width: 20, color: Colors.red),
-                        ], showingTooltipIndicators: [0]),
+                        BarChartGroupData(
+                          x: 0,
+                          barRods: [
+                            BarChartRodData(
+                              toY: incomeTotal,
+                              width: 40, // Thicker bar
+                              color: Colors.blue,
+                              borderRadius: BorderRadius.zero, // Flat tips
+                            ),
+                          ],
+                          showingTooltipIndicators: [0],
+                        ),
+                        BarChartGroupData(
+                          x: 1,
+                          barRods: [
+                            BarChartRodData(
+                              toY: expenseTotal,
+                              width: 40, // Thicker bar
+                              color: Colors.red,
+                              borderRadius: BorderRadius.zero, // Flat tips
+                            ),
+                          ],
+                          showingTooltipIndicators: [0],
+                        ),
                       ],
                       titlesData: FlTitlesData(
-                        bottomTitles: AxisTitles(sideTitles: SideTitles(
-                          showTitles: true,
-                          getTitlesWidget: (val, _) {
-                            return Text(val == 0 ? 'Income' : 'Expenses');
-                          }
-                        )),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: false), // Remove side numbering
+                        ),
+                        rightTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        topTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            getTitlesWidget: (val, _) {
+                              return Text(val == 0 ? 'Income' : 'Expenses');
+                            },
+                          ),
+                        ),
+                      ),
+                      gridData: FlGridData(show: false), // Remove dotted gridlines
+                      barTouchData: BarTouchData(
+                        enabled: true,
+                        touchTooltipData: BarTouchTooltipData(
+                          tooltipBgColor: Colors.grey,
+                          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                            return BarTooltipItem(
+                              '\$${rod.toY}',
+                              TextStyle(color: Colors.white),
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ),
@@ -453,6 +514,7 @@ class ReportsScreen extends StatelessWidget {
     );
   }
 }
+
 //////////////////////////////////////////////////////////
 // -------------------- SETTINGS SCREEN --------------------
 //////////////////////////////////////////////////////////
