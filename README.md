@@ -46,11 +46,9 @@ A Flutter-based Android application that helps users manage their personal finan
 ### Steps to Run:
 
 1. **Clone the repository:**
-
+2. 
 ```bash
-git clone <your-repo-link>
-cd <your-project-folder>
 
- **flutter pub get**
- **flutter run**
+ flutter pub get
+ flutter run
 
