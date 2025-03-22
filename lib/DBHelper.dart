@@ -48,8 +48,8 @@ class DBHelper {
       )
     ''');
 
-    // Insert default categories
-    final defaultCategories = ['Food', 'Rent', 'Entertainment', 'Utilities', 'Salary'];
+    // Insert default expense categories ONLY
+    final defaultCategories = ['Food', 'Rent', 'Entertainment', 'Utilities'];
     for (String category in defaultCategories) {
       await db.insert('categories', {'name': category});
     }
@@ -64,6 +64,16 @@ class DBHelper {
   Future<List<Map<String, dynamic>>> getAllTransactions() async {
     final db = await database;
     return await db.query('transactions', orderBy: 'date DESC');
+  }
+
+  Future<int> updateTransaction(int id, Map<String, dynamic> data) async {
+    final db = await database;
+    return await db.update('transactions', data, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteTransaction(int id) async {
+    final db = await database;
+    return await db.delete('transactions', where: 'id = ?', whereArgs: [id]);
   }
 
   // Savings Goal CRUD
