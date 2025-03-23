@@ -113,4 +113,3 @@ class DBHelper {
     return await db.delete('categories', where: 'id = ?', whereArgs: [id]);
   }
 }
-.,vvc
