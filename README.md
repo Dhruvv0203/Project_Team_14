@@ -1,5 +1,5 @@
 # 📊 Personal Finance Manager TEAM 14: Abhay Deep Singh | Dhruv Patel
-# 📽️ YouTube Video Presentation: https://youtu.be/1PH3j0UasNY
+# 📽️ YouTube Video Presentation: [https://youtu.be/1PH3j0UasNY](https://www.youtube.com/watch?v=HuTsTqShXV8)
 
 A Flutter-based Android application that helps users manage their personal finances with ease. Users can:
 
